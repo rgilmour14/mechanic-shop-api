@@ -5,8 +5,18 @@
 │   ├── /blueprints
 │		│		├──/customers
 │		│				├──__init__.py  - Initialize User Blueprint
-│		│				├── routes.py  - Create User Controllers/routes
+│		│				├── routes.py  - Create Customer Controllers/routes
 │		│				└── schemas.py
+                ├──/mechanics
+│		│				├──__init__.py  - Initialize User Blueprint
+│		│				├── routes.py  - Create Mechanic Controllers/routes
+│		│				└── schemas.py
+                ├──/tickets
+│		│				├──__init__.py  - Initialize User Blueprint
+│		│				├── routes.py  - Create Ticket Controllers/routes
+│		│				└── schemas.py
+    ├── /utils
+        └── util.py
 │   └── models.py
 ├── app.py
 └── config.py

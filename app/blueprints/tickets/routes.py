@@ -1,14 +1,16 @@
-from .schemas import ticket_schema, tickets_schema
+from .schemas import ticket_schema, tickets_schema, edit_ticket_schema, return_ticket_schema
 from flask import request, jsonify
 from marshmallow import ValidationError
 from sqlalchemy import select
-from app.models import Ticket, Customer, Mechanic, db
+from app.models import Ticket, Customer, Mechanic, Inventory, TicketParts, db
+from app.extensions import limiter, cache
 from . import tickets_bp
 
 #============ ROUTES =================
 
 # Create Ticket
 @tickets_bp.route("/", methods=['POST'])
+@limiter.limit("5 per hour")  # Limit to 5 requests per hour
 def create_ticket():
     try:
         ticket_data = ticket_schema.load(request.json)
@@ -60,8 +62,58 @@ def remove_mechanic(mechanic_id, ticket_id):
 
 # Get all Tickets
 @tickets_bp.route("/", methods=['GET'])
+@cache.cached(timeout=20)  # Cache for 20 seconds
 def get_tickets():
     query = select(Ticket)
     tickets = db.session.execute(query).scalars().all()
-
     return tickets_schema.jsonify(tickets)
+
+
+# Edit Ticket
+@tickets_bp.route("/<int:ticket_id>/edit", methods=['PUT'])
+def edit_ticket(ticket_id):
+    try:
+        ticket_edits = edit_ticket_schema.load(request.json)
+    except ValidationError as e:
+        return jsonify(e.messages), 400
+    
+    query = select(Ticket).where(Ticket.id == ticket_id)
+    ticket = db.session.execute(query).scalars().first()
+    
+    for mechanic_id in ticket_edits.get("add_mechanic_ids", []):
+        query = select(Mechanic).where(Mechanic.id == mechanic_id)
+        mechanic = db.session.execute(query).scalars().first()
+        
+        if mechanic and mechanic not in ticket.mechanics:
+            ticket.mechanics.append(mechanic)
+            
+    for mechanic_id in ticket_edits.get("remove_mechanic_ids", []):
+        query = select(Mechanic).where(Mechanic.id == mechanic_id)
+        mechanic = db.session.execute(query).scalars().first()
+        
+        if mechanic and mechanic in ticket.mechanics:
+            ticket.mechanics.remove(mechanic)
+            
+    db.session.commit()
+    return jsonify(return_ticket_schema.dump(ticket)), 200
+
+# Add Part to Ticket
+@tickets_bp.route("/<int:ticket_id>/add_part/<int:part_id>", methods=['POST'])
+def add_part_to_ticket(ticket_id, part_id):
+    ticket = db.session.get(Ticket, ticket_id)
+    part = db.session.get(Inventory, part_id)
+    
+    if not ticket or not part:
+        return jsonify({"error": "Part or Ticket not found."}), 404
+
+    for part in ticket.ticket_parts:
+        if part.part_id == part_id:
+            return jsonify({"message": "Part already associated with ticket."}), 200
+
+    ticket_part = TicketParts(ticket_id=ticket_id, part_id=part_id)
+    db.session.add(ticket_part)
+    db.session.commit()
+
+    return jsonify({"message": "Successfully added part to ticket"}), 200
+            
+        
