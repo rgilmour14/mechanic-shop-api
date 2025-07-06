@@ -50,7 +50,7 @@ def update_mechanic(mechanic_id):
         return jsonify({"error": "Mechanic not found."}), 400
     
     try:
-        mechanic_data = mechanic_schema.load(request.json)
+        mechanic_data = mechanic_schema.load(request.json, partial=True)
     except ValidationError as e:
         return jsonify(e.messages), 400
     
@@ -79,7 +79,7 @@ def mechanic_ticket_list():
     query = Select(Mechanic)
     mechanics = db.session.execute(query).scalars().all()
     
-    mechanics.sort(key=lambda mechanic: len(mechanic.tickets), reverse=True)
+    mechanics.sort(key=lambda mechanic: len(mechanic.mechanic_tickets), reverse=True)
     
     return mechanics_schema.jsonify(mechanics), 200
 

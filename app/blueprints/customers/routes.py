@@ -9,6 +9,7 @@ from app.utils.util import encode_token, token_required
 
 #============ ROUTES =================
 
+# customer log in
 @customers_bp.route("/login", methods=['POST'])
 def login():
     try:
@@ -31,7 +32,7 @@ def login():
         }
         return jsonify(response), 200
     else:
-        return jsonify({'messages': "Invalid email or password"}), 401
+        return jsonify({'messages': "Invalid email or password"}), 400
 
 # Create Customer
 @customers_bp.route("/", methods=['POST'])
@@ -65,7 +66,7 @@ def get_customer(customer_id):
     customer = db.session.get(Customer, customer_id)
 
     if customer:
-        return customer_schema.jsonify(customer), 400
+        return customer_schema.jsonify(customer), 200
     return jsonify({"error": "Customer not found."}), 400
 
 # Update Customer
@@ -79,7 +80,7 @@ def update_customer(customer_id):
         return jsonify({"error": "Customer not found."}), 400
     
     try:
-        customer_data = customer_schema.load(request.json)
+        customer_data = customer_schema.load(request.json, partial=True) 
     except ValidationError as e:
         return jsonify(e.messages), 400
     

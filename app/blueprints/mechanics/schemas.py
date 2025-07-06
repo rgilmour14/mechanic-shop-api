@@ -10,3 +10,4 @@ class MechanicSchema(ma.SQLAlchemyAutoSchema):
 mechanic_schema = MechanicSchema()
 mechanics_schema = MechanicSchema(many=True)
 
+

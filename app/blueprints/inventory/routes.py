@@ -4,6 +4,7 @@ from marshmallow import ValidationError
 from sqlalchemy import Select
 from app.models import Inventory, db
 from . import inventory_bp
+from app.utils.util import encode_token, token_required
 
 #============ ROUTES =================
 
@@ -35,7 +36,7 @@ def get_part(part_id):
     part = db.session.get(Inventory, part_id)
 
     if part:
-        return part_schema.jsonify(part), 400
+        return part_schema.jsonify(part), 200
     return jsonify({"error": "Part not found."}), 400
 
 # Update Part
@@ -47,7 +48,7 @@ def update_part(part_id):
         return jsonify({"error": "Part not found."}), 400
     
     try:
-        part_data = part_schema.load(request.json)
+        part_data = part_schema.load(request.json, partial=True)
     except ValidationError as e:
         return jsonify(e.messages), 400
     
@@ -62,7 +63,7 @@ def update_part(part_id):
 def delete_part(part_id):
     query = Select(Inventory).where(Inventory.id == part_id)
     part = db.session.execute(query).scalars().first()
- 
+
     db.session.delete(part)
     db.session.commit()
     return jsonify({"message": f'Part id: {part_id}, successfully deleted.'}), 200

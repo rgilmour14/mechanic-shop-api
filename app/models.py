@@ -76,5 +76,3 @@ class TicketParts(Base):
     
     ticket: Mapped["Ticket"] = relationship(back_populates="ticket_parts")
     part: Mapped["Inventory"] = relationship(back_populates="ticket_parts")
-
-    
